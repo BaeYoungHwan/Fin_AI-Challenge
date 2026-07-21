@@ -27,7 +27,7 @@
   (기관사칭형 4건 최우선 반영, 가족·지인 사칭형 2건, 대출빙자형 2건, 몸캠피싱형 1건, 기타 1건)
 - [x] `law_search.py` / `scam_classifier.py` / `vector_store.py` / 3-Agent 파이프라인 / `app.py` 작성
 - [x] 의존성 설치 완료 확인 + Hello World: 의심 상황 입력 → 법령 검색 → Groq 응답 → 로컬 벡터 저장소 저장 전체 흐름 확인 (스모크 테스트 3/3 통과)
-- [ ] Streamlit Community Cloud 배포 테스트 (URL 확보 먼저 확인)
+- [x] Streamlit Community Cloud 배포 완료 — https://finaichallenge.streamlit.app
 
 ---
 
@@ -37,6 +37,8 @@
 - [ ] Retrieval Agent — 법제처 API 실시간 법령 검색 + 큐레이션 사기유형 DB 대조 (Top-3)
 - [ ] Analysis Agent — 위험도(주의 수준) 판단 + 근거 조문 인용 + 환각 검증(재분석 루프) + 안전 행동요령 생성
   ※ 사기 여부 단정 금지 — 항상 "위험도 + 안전 행동요령" 형태로만 출력
+  ※ P0에서 로직은 구현됨(`analysis_agent.py`) — 미제공 법령을 강제로 인용시켜 재분석 루프가
+    실제로 발동하는지 확인하는 테스트 케이스는 아직 없음
 - [ ] Feedback Agent — 사용자 피드백(도움됐는지) 수집 → 품질 필터링 → 로컬 벡터 저장소 저장
 - [ ] Streamlit UI — 상황 입력 → 위험도/근거/행동요령 스트리밍 출력 → 피드백 입력창
 - [ ] 시나리오별 E2E 테스트 (가족·지인 사칭형/기관 사칭형/대출빙자형 등 5개 이상)
@@ -46,6 +48,8 @@
 ## P2 — 검증 및 배포
 
 - [ ] 배포 (Phase 0에서 결정한 방식) — 상시 접근 가능한 공개 URL 확보
+  ※ P0 골격 배포는 완료(https://finaichallenge.streamlit.app, GitHub push 시 자동 재배포) —
+    제출 마감(2026-09-07) 전 최종 기능으로 재확인 필요
 - [ ] 기획서(PDF) / 기능명세서(PDF) 작성
 - [ ] 시연 영상 (가점)
 - [ ] 대회 제출 (~2026-09-07 10:00) — 기획서 + 기능명세서 + 웹서비스 URL
