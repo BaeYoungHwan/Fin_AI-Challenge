@@ -1,0 +1,7 @@
+langchain==0.3.*
+langchain-groq==0.2.*
+numpy>=1.26,<3
+sentence-transformers==3.*
+streamlit==1.35.*
+requests==2.*
+python-dotenv==1.*
