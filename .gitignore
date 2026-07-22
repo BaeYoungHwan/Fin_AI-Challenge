@@ -7,6 +7,9 @@
 logs/
 *.log
 
+# Groq 일일 사용량 카운터 — 매일 초기화되는 런타임 상태, 시드 데이터가 아님
+src/db/store/groq_usage.json
+
 # Python
 __pycache__/
 *.py[cod]

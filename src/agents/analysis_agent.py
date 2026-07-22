@@ -8,6 +8,7 @@ from typing import Generator
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 
+from src.tools import usage_guard
 from src.tools.law_search import LawArticle
 from src.tools.scam_classifier import SCAM_TYPES
 
@@ -108,6 +109,14 @@ def _build_correction_prompt(original_prompt: str, prior_analysis: str, hallucin
 
 
 def run(retrieval: dict) -> Generator[str, None, None]:
+    if usage_guard.limit_reached():
+        logger.warning("Groq 일일 사용량 여유 한도(%d) 도달 — 호출 차단", usage_guard.soft_cap())
+        yield (
+            "\n\n[안내] 오늘의 무료 API 사용량이 여유 한도에 도달해 지금은 분석할 수 없습니다. "
+            "내일 다시 시도해 주세요. 급한 경우 112(경찰) 또는 1332(금융감독원)로 직접 문의하세요."
+        )
+        return
+
     articles = retrieval.get("law_articles", [])
     cases = retrieval.get("similar_cases", [])
     law_text = _format_articles(articles)
@@ -117,6 +126,7 @@ def run(retrieval: dict) -> Generator[str, None, None]:
     prompt = _build_prompt(retrieval, law_text, case_text)
 
     chunks: list[str] = []
+    usage_guard.record_request()
     try:
         for chunk in llm.stream(prompt):
             piece = chunk.content if hasattr(chunk, "content") else str(chunk)
@@ -137,10 +147,15 @@ def run(retrieval: dict) -> Generator[str, None, None]:
     if not hallucinated:
         return
 
+    if usage_guard.limit_reached():
+        logger.warning("재분석 직전 사용량 여유 한도 도달 — 재분석 건너뜀")
+        return
+
     logger.info("환각 인용 탐지 — 재분석 트리거: %s", hallucinated)
     yield "\n\n[검증] 인용 근거 재확인 중...\n\n"
 
     correction_prompt = _build_correction_prompt(prompt, full_text, hallucinated)
+    usage_guard.record_request()
     try:
         for chunk in llm.stream(correction_prompt):
             piece = chunk.content if hasattr(chunk, "content") else str(chunk)

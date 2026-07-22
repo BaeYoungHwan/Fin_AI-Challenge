@@ -53,6 +53,8 @@
 - **로컬 벡터 저장소**: numpy + JSON (ChromaDB의 네이티브 빌드 의존성 없이 Windows에서도 설치 가능)
 - **법제처 Open API**: 법적 근거 실시간 검색 (환각 방지 검증 포함)
 - **Groq API 무료 티어**(Llama 3.3 70B): 위험도 분석 + 행동요령 생성
+  (`src/tools/usage_guard.py`가 일일 요청 한도의 90%에서 자동으로 호출을 멈춰 무료 티어를
+  벗어나지 않도록 방어)
 - **Streamlit**: UI + Streamlit Community Cloud 배포
 
 ## 프로젝트 구조
