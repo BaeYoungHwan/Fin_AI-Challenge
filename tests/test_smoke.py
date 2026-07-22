@@ -15,10 +15,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 # 실제 시드/피드백 데이터 파일을 건드리지 않도록 벡터 저장소 경로를 임시 파일로 격리한다.
 # 매 실행마다 깨끗한 상태로 시작하도록 이전 실행의 잔여 파일은 지운다.
+# add_case/query_similar_cases에 store_path를 직접 넘긴다 — 환경변수를 공유하면 다른
+# 테스트 파일의 import 순서에 따라 서로 경로를 덮어쓰는 문제가 있어 피한다.
 _TEST_STORE_PATH = os.path.join(tempfile.gettempdir(), "vpg_test_store.json")
 if os.path.exists(_TEST_STORE_PATH):
     os.remove(_TEST_STORE_PATH)
-os.environ["VECTOR_STORE_PATH"] = _TEST_STORE_PATH
 
 from src.tools.scam_classifier import classify
 
@@ -35,8 +36,8 @@ def test_vector_store_round_trip() -> bool:
     from src.db.vector_store import add_case, query_similar_cases
 
     dummy_embedding = [0.1] * 384
-    add_case("test-case", "테스트 상황", dummy_embedding, {"scam_type": "테스트"})
-    results = query_similar_cases(dummy_embedding, n_results=1)
+    add_case("test-case", "테스트 상황", dummy_embedding, {"scam_type": "테스트"}, store_path=_TEST_STORE_PATH)
+    results = query_similar_cases(dummy_embedding, n_results=1, store_path=_TEST_STORE_PATH)
     ok = len(results) > 0
     print(f"[vector_store] round-trip -> {'PASS' if ok else 'FAIL'}")
     return ok

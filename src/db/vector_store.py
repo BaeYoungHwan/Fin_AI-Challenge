@@ -13,31 +13,41 @@ from pathlib import Path
 
 import numpy as np
 
-_STORE_PATH = Path(os.getenv("VECTOR_STORE_PATH", "src/db/store/cases.json"))
+def _default_store_path() -> Path:
+    return Path(os.getenv("VECTOR_STORE_PATH", "src/db/store/cases.json"))
 
 
-def _load() -> list[dict]:
-    if not _STORE_PATH.exists():
+def _load(store_path: str | Path | None) -> list[dict]:
+    path = Path(store_path) if store_path is not None else _default_store_path()
+    if not path.exists():
         return []
-    with open(_STORE_PATH, encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
-def _save(records: list[dict]) -> None:
-    _STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(_STORE_PATH, "w", encoding="utf-8") as f:
+def _save(records: list[dict], store_path: str | Path | None) -> None:
+    path = Path(store_path) if store_path is not None else _default_store_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(records, f, ensure_ascii=False, indent=2)
 
 
-def add_case(case_id: str, text: str, embedding: list[float], metadata: dict) -> None:
-    records = _load()
+def add_case(
+    case_id: str, text: str, embedding: list[float], metadata: dict, store_path: str | Path | None = None
+) -> None:
+    """store_path 미지정 시 VECTOR_STORE_PATH 환경변수(없으면 기본 시드 경로)를 사용한다.
+    테스트에서 저장소를 격리할 때는 store_path를 명시적으로 넘긴다 — 환경변수 공유는
+    테스트 파일 import 순서에 따라 서로 경로를 덮어쓰는 문제가 있어 피한다."""
+    records = _load(store_path)
     records = [r for r in records if r["id"] != case_id]
     records.append({"id": case_id, "content": text, "embedding": embedding, "metadata": metadata})
-    _save(records)
+    _save(records, store_path)
 
 
-def query_similar_cases(embedding: list[float], n_results: int = 3) -> list[dict]:
-    records = _load()
+def query_similar_cases(
+    embedding: list[float], n_results: int = 3, store_path: str | Path | None = None
+) -> list[dict]:
+    records = _load(store_path)
     if not records:
         return []
 
