@@ -1,187 +1,163 @@
-# Claude Code 하네스 템플릿
+# 🛡️ voice-phishing-guardian
 
-> Claude Code를 프로덕션 수준으로 바로 쓸 수 있는 범용 템플릿.
-> 보안 훅, 자동화 스킬, 에이전트, 테스트 인프라, 문서 구조가 사전 구성되어 있습니다.
+> 보이스피싱·이상금융거래 의심 상황을 입력하면 위험 신호를 분석하고, 법령 근거와 실전 대응절차를
+> 안내하는 AI 금융보안비서.
+> **2026 금융 AI Challenge**(금융보안원 주최) 제출용 프로젝트입니다.
 
----
-
-## 요구사항
-
-- **Bash 4+** — Linux/macOS 기본 제공. Windows는 [Git Bash](https://git-scm.com/downloads) 또는 WSL2 권장.
-- **Python 3.8+** — 훅 JSON 파싱 및 분석 스크립트용 (없으면 훅이 빈 값으로 폴백)
-- **git** — 버전 관리
-- **gh CLI** — PR 자동화 (`/PR` 스킬 사용 시)
-
-> Windows PowerShell 단독 환경은 현재 미지원입니다. Git Bash 또는 WSL2에서 실행하세요.
+**배포 URL**: https://finaichallenge.streamlit.app
 
 ---
 
-## 무엇이 포함되나
+## 무엇을 하는 서비스인가
 
-### 보안 & 감사 훅 (`.claude/hooks/`)
+보이스피싱·메신저피싱 피해는 대부분 "판단이 필요한 순간"에 발생합니다. 문자·전화·메신저로
+의심스러운 요청을 받았을 때, 이것이 실제 위험인지 즉시 판단하기 어렵고 관련 법적 보호장치나
+지금 해야 할 행동도 바로 알기 어렵습니다.
 
-| 훅 | 동작 시점 | 역할 |
-|----|-----------|------|
-| `pre-bash-guard.sh` | Bash 실행 전 | `rm -rf`, `--no-verify`, `curl\|sh`, 자격증명 패턴 차단 |
-| `post-bash-audit.sh` | Bash 실행 후 | 모든 명령을 `logs/claude-audit.log`에 기록 |
-| `tdd-enforcer.sh` | Write/Edit 전 | 구현 파일 생성 시 테스트 파일 존재 여부 강제 확인 |
-| `architecture-guard.sh` | Write/Edit 후 | 레이어 의존성 위반 감지 (경고) |
-| `circuit-breaker.sh` | Bash 실행 후 | 동일 에러 3회 반복 시 자동 중단 |
-| `lint-test-build.sh` | Write/Edit 후 | lint / test / build 결과 자동 검증 |
-| `sub-agent-review.sh` | 에이전트 결과 수신 후 | 서브에이전트 출력 품질 검토 |
-| `session-replay.sh` | Bash/Write/Edit 실행 후 | tool call 이벤트를 JSONL로 기록 (성능 분석) |
-| `session-persist.sh` | 세션 종료 시 | git 상태를 `docs/ref/session-state.md`에 저장 |
+이 서비스는 사용자가 겪은 상황을 텍스트로 입력하면:
 
-### 슬래시 스킬 (`.claude/commands/`)
+1. 위험 신호(red flag)를 자동 탐지하고
+2. 법제처 Open API로 관련 법령 조문을 실시간 검색해 근거로 제시하고
+3. 큐레이션된 사기 유형 사례와 대조해 유사 패턴을 안내하고
+4. **사기 여부를 단정하지 않고** 위험도와 함께 언제나 유효한 안전 행동요령(직접 재확인, 112/1332
+   신고 등)을 제공합니다.
 
-| 스킬 | 역할 |
-|------|------|
-| `/init-project` | 프로젝트 정보 양식 → CLAUDE.md 완성 + PRD 초안 |
-| `/commit` | 한국어 커밋 컨벤션 + Trailers 패턴 |
-| `/PR` | GitHub PR 자동 생성 (브랜치 비교 → 제목/본문 작성 → 제출) |
-| `/tdd` | Red → Green → Refactor 사이클 (pass^3) |
-| `/deep-interview` | 소크라테스식 질문으로 스펙 구체화 |
-| `/ralph` | plan → exec → verify → fix 완료 보장 루프 |
-| `/ultrawork` | 독립 작업 병렬화 (에이전트 서브태스크) |
-| `/close-project` | 프로젝트 종료 체크리스트 (문서 정리, 아카이브) |
-| `/ai-readiness-cartography` | AI-readiness 점수 + HTML 대시보드 시각화 |
-| `/improve-token-efficiency` | Claude Code 세션 JSONL 분석 → 토큰 효율 리포트 |
-| `/update-config` | `settings.json` 훅·권한 구성 자동화 |
-| `/simplify` | 변경 코드 재사용·품질·효율 검토 후 개선 |
-| `/security-review` | 현재 브랜치 변경사항 보안 리뷰 |
-| `/review` | PR 코드 리뷰 |
+> ⚠️ 이 서비스는 위험 신호를 안내하는 보조 도구이며 사기 여부를 확정하지 않습니다. 실제 판단은
+> 사용자와 공식 기관 확인을 통해 이루어져야 합니다.
 
-### 에이전트 (`agents/`)
+---
 
-| 에이전트 | 역할 |
-|----------|------|
-| `code-reviewer.md` | 코드 품질 리뷰 (Sonnet) |
-| `doc-gardener.md` | 문서-코드 불일치 감지 (Haiku) |
-| `security-reviewer.md` | 보안 취약점 정적 분석 (Opus) |
-| `step-validator.md` | Plan 모드 단계별 결과 검증 |
-| `_templates/` | 도메인 에이전트 템플릿 (auth, order, payment 예시 포함) |
-
-### 마켓플레이스 스킬 (`skills/`)
-
-다른 프로젝트에 설치 가능한 독립 스킬 패키지:
-
-| 스킬 | 역할 |
-|------|------|
-| `karpathy-guidelines/` | Karpathy 코딩 원칙을 기반으로 한 코드 리뷰 가이드라인 |
-
-### 문서 구조 (`docs/`)
+## 아키텍처
 
 ```
-docs/
-├── ref/              # 필요할 때만 로드하는 참조 문서
-│   ├── session-state.md       # 세션 재시작 기준점 (자동 갱신)
-│   ├── todo-workflow.md       # [ ]→[🔄]→[x] 워크플로우
-│   ├── commit-convention.md   # 한국어 커밋 + Trailers
-│   ├── testing-patterns.md    # pass@k / pass^k
-│   ├── agent-model-routing.md # Haiku/Sonnet/Opus 라우팅
-│   ├── project-setup.md       # 새 프로젝트 시작 가이드
-│   ├── hooks-overview.md      # 훅 동작 원리 및 커스터마이징
-│   ├── plan-mode-workflow.md  # Plan 모드 실행 흐름
-│   ├── tdd-guide.md           # TDD 사이클 가이드
-│   ├── verification-protocol.md
-│   ├── PRD-template.md
-│   ├── architecture-template.md
-│   ├── ADR-template.md
-│   └── spec-driven-workflow.md
-├── design-docs/      # 설계 문서 (core-beliefs, golden-principles 등)
-├── exec-plans/       # 실행 계획 (active/ / completed/)
-└── product-specs/    # PRD / 기획 문서
+상황 입력 (Streamlit UI)
+    │
+    ▼
+[Retrieval Agent]  ← 법제처 Open API (실시간 법령 검색)
+  위험 신호(red flag) 패턴 탐지 → 적용 법령 키워드 결정
+  ← 로컬 벡터 저장소 (큐레이션 사기 유형·대응절차 Top-3)
+    │
+    ▼
+[Analysis Agent]   ← Groq API (무료 티어, Llama 3.3 70B)
+  위험도(주의 수준) 판단 + 법령 조항 인용 + 안전 행동요령 생성
+  [검증 단계] 인용 조문 환각 탐지 → 미제공 법령 인용 시 자동 재분석
+    │
+    ▼
+[Feedback Agent]   ← 사용자 피드백(도움됐는지) 입력
+  품질 필터링 → 유효 피드백만 로컬 벡터 저장소 저장
 ```
 
-### 자동화 도구
+## 기술 스택
 
-- `.claude/skills/executor.py` — exec-plans의 `[ ]` 항목을 `claude -p` 헤드리스 모드로 순차 실행
+- **Python 3.12** + **LangChain**
+- **로컬 벡터 저장소**: numpy + JSON (ChromaDB의 네이티브 빌드 의존성 없이 Windows에서도 설치 가능)
+- **법제처 Open API**: 법적 근거 실시간 검색 (환각 방지 검증 포함)
+- **Groq API 무료 티어**(Llama 3.3 70B): 위험도 분석 + 행동요령 생성
+- **Streamlit**: UI + Streamlit Community Cloud 배포
 
-### 테스트 인프라 (`tests/`)
+## 프로젝트 구조
 
-훅 전체를 자동 검증하는 셸 테스트 스위트:
+```
+src/
+├── agents/
+│   ├── retrieval_agent.py    # 법령 검색 + 위험 신호 탐지 + 유사 유형 조회
+│   ├── analysis_agent.py     # 위험도 판단 + 행동요령 생성(LLM) + 환각 검증
+│   └── feedback_agent.py     # 피드백 품질 필터링 + 사례 저장
+├── tools/
+│   ├── law_search.py         # 법제처 Open API 래퍼
+│   └── scam_classifier.py    # 위험 신호 패턴 + 사기 유형 매핑
+├── db/
+│   └── vector_store.py       # 로컬 벡터 저장소 (numpy+JSON)
+└── ui/
+    └── app.py                # Streamlit UI
+scripts/
+└── seed_chroma.py            # 사기 유형·대응절차 큐레이션 시드 데이터 적재
+tests/
+├── test_smoke.py             # P0 스모크 테스트
+└── test_e2e_scenarios.py     # 사기 유형별 E2E 테스트
+```
+
+---
+
+## 로컬 실행
+
+### 1. 의존성 설치
 
 ```bash
-bash tests/run-all.sh
+python -m venv .venv
+.venv/Scripts/activate   # Windows
+# source .venv/bin/activate  # macOS/Linux
+
+pip install -r requirements.txt
 ```
 
-개별 훅 테스트도 독립 실행 가능 (`tests/hooks/test_*.sh`).
+### 2. API 키 설정
+
+`.env.example`을 `.env`로 복사한 뒤 값을 채웁니다.
+
+```bash
+cp .env.example .env
+```
+
+| 변수 | 발급처 |
+|------|--------|
+| `LAW_API_KEY` | [법제처 Open API](https://open.law.go.kr) — OC 코드 발급 |
+| `GROQ_API_KEY` | [Groq Console](https://console.groq.com/keys) — 무료 API 키 발급 |
+
+### 3. 시드 데이터 적재
+
+사기 유형별 큐레이션 시나리오 10건을 로컬 벡터 저장소에 적재합니다 (최초 1회, 이미
+`src/db/store/cases.json`에 포함되어 있어 생략 가능).
+
+```bash
+python scripts/seed_chroma.py
+```
+
+### 4. 앱 실행
+
+```bash
+streamlit run src/ui/app.py
+```
 
 ---
 
-## 빠른 시작
-
-### 1단계 — 템플릿으로 새 레포 생성
-
-GitHub **"Use this template"** 버튼 클릭 → 새 레포 생성
-
-또는 gh CLI:
-```bash
-gh repo create my-project --template <owner>/claude-code-template --private --clone
-cd my-project
-```
-
-### 2단계 — 전역 설정 설치 (최초 1회)
-
-원라이너 설치 (상태바 + Windows 토스트 알림):
+## 테스트
 
 ```bash
-bash global-setup/install.sh
+# 권장 — API 호출 없이 로컬 컴포넌트만 검증 (분류기, 벡터 저장소, 환각 탐지)
+python tests/test_smoke.py
+python tests/test_e2e_scenarios.py
+
+# 법제처 API + Groq를 태우는 전체 파이프라인까지 검증 (무료 티어 한도를 아끼기 위해 opt-in)
+python tests/test_smoke.py --with-api
+python tests/test_e2e_scenarios.py --with-api
 ```
 
-또는 수동 설치:
-
-```bash
-mkdir -p ~/.claude/hooks
-
-cp global-setup/settings.json ~/.claude/settings.json
-cp global-setup/hooks/context-bar.sh ~/.claude/hooks/
-cp global-setup/hooks/notify.ps1 ~/.claude/hooks/
-cp global-setup/hooks/session_start.ps1 ~/.claude/hooks/
-
-# Mac/Linux
-chmod +x ~/.claude/hooks/context-bar.sh
-```
-
-> `~/.claude/settings.json`이 이미 있다면 기존 내용 백업 후 병합하세요.
-
-### 3단계 — 프로젝트 초기화
-
-Claude Code를 열고 실행:
-```
-/init-project
-```
-
-양식을 작성하면 Claude가 `CLAUDE.md` 플레이스홀더를 완성하고 PRD 초안을 생성합니다.
+> `pytest tests/`를 직접 실행하면 `--with-api` 플래그와 무관하게 API 호출 테스트까지 전부
+> 수집·실행됩니다. pytest로 돌리려면 반드시 제외 필터를 함께 쓰세요:
+> `pytest tests/ -k "not law_api_and_groq and not full_pipeline"`
 
 ---
 
-## 상태바 (context-bar)
+## MVP 범위 제한
 
-```
-claude-sonnet-4-6 | 📁 my-project | 🔀 main (0 uncommitted) | ████░░░░░░ ~12%
-💬 마지막 메시지...
-```
+아래 항목은 명시적 요청 없이 구현하지 않습니다.
 
-색상 변경: `global-setup/hooks/context-bar.sh` 상단의 `COLOR` 값 수정
-`orange | blue | teal | green | lavender | rose | gold | slate | cyan`
+- 실시간 은행/통신사 시스템 연동을 통한 실제 이상거래 탐지
+- 신고 자동 접수(경찰청/금융감독원 시스템 직접 연동)
+- 다국어(i18n) 지원
+- 사기 여부에 대한 단정적(예/아니오) 판정 제공
 
----
+## 제약사항
 
-## Windows 토스트 알림
+- 이전 대회(JB금융그룹 Fin:AI Challenge) 제출작 JB_LLM의 코드·문서·프롬프트 문구를 재사용하지
+  않습니다. 재사용 범위는 "RAG + 환각 검증 + 피드백 루프"라는 범용 아키텍처 패턴으로 제한하며,
+  프롬프트·법령 카테고리·비즈니스 로직 문구는 모두 이 프로젝트에서 새로 작성했습니다.
+- 이 저장소는 JB_LLM 저장소의 포크가 아닙니다.
 
-작업 완료 시 알림 + 효과음. 세션 3분 이상일 때만 발동 (짧은 작업 노이즈 방지).
+## 대회 일정
 
-> Mac/Linux: `global-setup/settings.json`의 훅 커맨드를 OS에 맞게 수정
-
----
-
-## executor.py 사용법
-
-exec-plans의 마크다운에 `- [ ] 작업설명` 형식으로 작업을 나열하면 자동 순차 실행:
-
-```bash
-python .claude/skills/executor.py --plan docs/exec-plans/active/phase-1.md
-python .claude/skills/executor.py --plan docs/exec-plans/active/phase-1.md --dry-run
-python .claude/skills/executor.py --plan docs/exec-plans/active/phase-1.md --retry-failed
-```
+- 기획서·MVP 제출 마감: 2026-09-07 10:00
+- 웹서비스 URL 접근 가능 유지 기간: 2026-09-07 11:00 ~ 09-11 23:59
+- 발표 심사 대상 명단 발표: 2026-09-22
+- 발표 심사(오프라인): 2026-10-13
