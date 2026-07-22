@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -9,6 +10,16 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import streamlit as st
+
+# Streamlit Community Cloud의 Secrets는 st.secrets로만 노출되고 os.environ에는
+# 자동 반영되지 않는다. law_search.py가 모듈 import 시점에 os.getenv로 키를 읽으므로,
+# 아래에서 agents/tools를 import하기 전에 명시적으로 os.environ에 복사해야 한다.
+# 로컬 실행 시(.env + python-dotenv 사용)는 secrets.toml이 없어 예외가 나므로 무시한다.
+try:
+    for _key, _value in st.secrets.items():
+        os.environ.setdefault(_key, str(_value))
+except Exception:
+    pass
 
 from src.agents import analysis_agent, feedback_agent, retrieval_agent
 
