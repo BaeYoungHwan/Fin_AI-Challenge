@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+# `streamlit run src/ui/app.py`로 실행하면 스크립트가 위치한 src/ui/ 디렉터리만
+# sys.path에 잡혀 저장소 루트가 빠진다 — Streamlit Community Cloud에서 이 때문에
+# `from src.agents import ...`가 ModuleNotFoundError로 실패했다.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+
 import streamlit as st
 
 from src.agents import analysis_agent, feedback_agent, retrieval_agent
